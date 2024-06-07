@@ -1,7 +1,8 @@
 // all components are server components by default. To convert them to client components, we type "use client" at the beginning of the code
 "use client";
 import Todo from "@/components/Todo";
-import { useState } from "react";
+import axios from "axios";
+import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -10,6 +11,44 @@ export default function Home() {
     title: "",
     description: "",
   });
+
+  // state variable to store the todos data
+  const [todoData, setTodoData] = useState([]);
+
+  const fetchTodos = async () => {
+    const response = await axios("/api"); //by default, axios will hit the get method, so no need for axios.get
+    setTodoData(response.data.todos);
+  };
+
+  // function to delete todo
+  const deleteTodo = async (id) => {
+    const response = await axios.delete("/api", {
+      params: {
+        mongoId: id,
+      },
+    });
+    toast.success(response.data.msg);
+    fetchTodos();
+  };
+
+  // function to mark todo as complete
+  const completeTodo = async (id) => {
+    const response = await axios.put(
+      "/api",
+      {},
+      {
+        params: {
+          mongoId: id,
+        },
+      }
+    );
+    toast.success(response.data.msg);
+    fetchTodos();
+  };
+
+  useEffect(() => {
+    fetchTodos();
+  }, []);
 
   const onChangeHandler = (e) => {
     const name = e.target.name;
@@ -24,8 +63,15 @@ export default function Home() {
 
     try {
       // api code
+      const response = await axios.post("/api", formData);
 
-      toast.success("Success");
+      toast.success(response.data.msg);
+
+      setFormData({
+        title: "",
+        description: "",
+      });
+      await fetchTodos();
     } catch (error) {
       toast.error("Error");
     }
@@ -82,9 +128,20 @@ export default function Home() {
             </tr>
           </thead>
           <tbody>
-            <Todo />
-            <Todo />
-            <Todo />
+            {todoData.map((item, index) => {
+              return (
+                <Todo
+                  key={index}
+                  id={index}
+                  title={item.title}
+                  description={item.description}
+                  complete={item.isCompleted}
+                  mongoId={item._id}
+                  deleteTodo={deleteTodo}
+                  completeTodo={completeTodo}
+                />
+              );
+            })}
           </tbody>
         </table>
       </div>
